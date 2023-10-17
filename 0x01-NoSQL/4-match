@@ -1,0 +1,2 @@
+// print specified document in a collection of a db
+db.school.find({"name" : "Holberton school"})
