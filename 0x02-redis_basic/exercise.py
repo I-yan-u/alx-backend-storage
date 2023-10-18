@@ -39,6 +39,23 @@ def count_calls(method: Callable) -> Callable:
     return wrapper
 
 
+def replay(method: Callable) -> str:
+    """ retrieves cached information from the database """
+    name = method.__qualname__
+    redis_inst = method.__self__._redis
+    _class = method.__self__
+    call_Count = redis_inst.get(name)
+    args = redis_inst.lrange(name + ':inputs', 0, -1)
+    results = redis_inst.lrange(name + ':outputs', 0, -1)
+    print('{} was called {} times:'.format(name, int(call_Count)))
+    pack = zip(args, results)
+
+    for items in pack:
+        print('{}(*{}) -> {}'.format(name,
+                                     _class.get_str(items[0]),
+                                     _class.get_str(items[1])))
+
+
 class Cache:
     """ Cache implementation with redis """
     def __init__(self):
@@ -64,7 +81,7 @@ class Cache:
     def get_str(self, data: str) -> str:
         """ returns string form of data """
         return data.decode('utf-8')
-    
+
     def get_int(self, data: str) -> int:
         """ returns integer form of data """
         return int(data)
