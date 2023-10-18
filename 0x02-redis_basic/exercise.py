@@ -8,6 +8,23 @@ from typing import Union, Callable, Optional
 from functools import wraps
 
 
+def call_history(method: Callable) -> Callable:
+    """
+    Stores input params passed to a method and
+    output values returned by the method.
+    """
+    inputs = method.__qualname__ + ':inputs'
+    outputs = method.__qualname__ + ':outputs'
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        self._redis.rpush(inputs, str(args))
+        result = method(self, *args, **kwargs)
+        self._redis.rpush(outputs, str(result))
+        return result
+    return wrapper
+
+
 def count_calls(method: Callable) -> Callable:
     """ Returns a function that increments the number of calls
         the passed method has. also returning the return value of
@@ -30,6 +47,7 @@ class Cache:
         self._redis.flushdb()
 
     @count_calls
+    @call_history
     def store(self, data: Union[str, int, float, bytes]) -> str:
         """ cache storage method """
         key = str(uuid.uuid4())
